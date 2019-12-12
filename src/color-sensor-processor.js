@@ -1,11 +1,11 @@
 // version: 0.9.1
-var newColorSensorProcessor = function (getColorFn) {
+const newColorSensorProcessor = function (getColorFn) {
 // wire-in the built-in (i.e. defined in EDU) `getColor()` function.
     if (getColorFn === undefined) {
         getColorFn = getColor;
     }
 
-    var config = {
+    const config = {
         stability: 1,       // how many samples in a row must be equivalent to consider a new color read as "stable."
         sampleFrequency: 0  // how frequently (in Hz) to sample from RVR's color sensor. 0 = on-demand.
     };
@@ -23,20 +23,20 @@ var newColorSensorProcessor = function (getColorFn) {
         }
     }
 
-    var rawColors = [];     // array of {r:, g:, b:}. a rolling log of colors sampled from the RVR's color sensor.
-    var avgColors = [];     // array of {r:, g:, b:}. a rolling average over `rawColors`
-    var latestStableColor = {r: 0, g: 0, b: 0};
+    let rawColors = [];     // array of {r:, g:, b:}. a rolling log of colors sampled from the RVR's color sensor.
+    let avgColors = [];     // array of {r:, g:, b:}. a rolling average over `rawColors`
+    let latestStableColor = {r: 0, g: 0, b: 0};
 
     function collectSample() {
         rawColors.unshift(getColorFn());
-        var currAvgColor = average(rawColors);
+        const currAvgColor = average(rawColors);
         avgColors.unshift(currAvgColor);
 
         // have we collected enough data points to even think about calculating stability?
         if (avgColors.length >= config.stability) {
             if (areStable(avgColors)) {
                 // wait until the last possible moment to round values to minimize statistical error.
-                var nextStableColor = round(currAvgColor);
+                const nextStableColor = round(currAvgColor);
                 if (!isEqual(nextStableColor, latestStableColor)) {
                     latestStableColor = nextStableColor;
                     invokeHandlersMatching(latestStableColor);
@@ -48,13 +48,13 @@ var newColorSensorProcessor = function (getColorFn) {
     }
 
     function areStable(colors) {
-        var stdev = standardDeviation(colors);
+        const stdev = standardDeviation(colors);
         return stdev.r < 3.0 && stdev.g < 3.0 && stdev.b < 3.0;
     }
 
-    var activeSpecs = new Map();  // from Spec to {handlers:[handlerFns...], hasBeenMatching: false}
+    const activeSpecs = new Map();  // from Spec to {handlers:[handlerFns...], hasBeenMatching: false}
     function registerHandler(spec, handler) {
-        var state = activeSpecs.get(spec) || {
+        const state = activeSpecs.get(spec) || {
             handlers: [],
             hasBeenMatching: false
         };
@@ -62,10 +62,10 @@ var newColorSensorProcessor = function (getColorFn) {
         activeSpecs.set(spec, state);
     }
     function invokeHandlersMatching(color) {
-        for (var [spec, state] of activeSpecs) {
+        for (const [spec, state] of activeSpecs) {
             if (spec.isMatch(color)) {
                 if (!state.hasBeenMatching) {
-                    for (var idx = 0; idx < state.handlers.length; idx++) {
+                    for (let idx = 0; idx < state.handlers.length; idx++) {
                         const handler = state.handlers[idx];
                         if (!handler.isRunning) {
                             handler.isRunning = true;
@@ -97,9 +97,9 @@ var newColorSensorProcessor = function (getColorFn) {
     function startScan(scanFrequency) {
         return function (freq) {
             freq = freq || 10;
-            var enabled = true;
-            var count = 0;
-            var values = {
+            let enabled = true;
+            let count = 0;
+            const values = {
                 r: {min: 255, max: 0},
                 g: {min: 255, max: 0},
                 b: {min: 255, max: 0}
@@ -107,7 +107,7 @@ var newColorSensorProcessor = function (getColorFn) {
 
             function scanForColor(freq) {
                 if (enabled) {
-                    var c = getColorFn();
+                    const c = getColorFn();
 
                     // omit off; it's a start-up value and would result into artificially large tolerances in the
                     //   yielded color spec.
@@ -129,7 +129,7 @@ var newColorSensorProcessor = function (getColorFn) {
             }
 
             function getColorSpec() {
-                var avg = {
+                const avg = {
                     r: (values.r.max + values.r.min) / 2,
                     g: (values.g.max + values.g.min) / 2,
                     b: (values.b.max + values.b.min) / 2
@@ -157,8 +157,8 @@ var newColorSensorProcessor = function (getColorFn) {
     // calculates the average of a list of colors (for each channel).
     //   assumes there is at least one item in the list.
     function average(colors) {
-        var avg = {r: 0, g: 0, b: 0};
-        for (var idx = 0; idx < colors.length; idx++) {
+        const avg = {r: 0, g: 0, b: 0};
+        for (let idx = 0; idx < colors.length; idx++) {
             avg.r += colors[idx].r;
             avg.g += colors[idx].g;
             avg.b += colors[idx].b;
@@ -174,10 +174,10 @@ var newColorSensorProcessor = function (getColorFn) {
     //   assumes there is at least one item in the list.
     //   (see also: https://www.mathsisfun.com/data/standard-deviation-formulas.html)
     function standardDeviation(colors) {
-        var avg = average(colors);
+        const avg = average(colors);
 
-        var sumOfDiffsSquared = {r: 0, g: 0, b: 0};
-        for (var idx = 0; idx < colors.length; idx++) {
+        const sumOfDiffsSquared = {r: 0, g: 0, b: 0};
+        for (let idx = 0; idx < colors.length; idx++) {
             sumOfDiffsSquared.r += (avg.r - colors[idx].r) * (avg.r - colors[idx].r);
             sumOfDiffsSquared.g += (avg.g - colors[idx].g) * (avg.g - colors[idx].g);
             sumOfDiffsSquared.b += (avg.b - colors[idx].b) * (avg.b - colors[idx].b);
@@ -204,12 +204,16 @@ var newColorSensorProcessor = function (getColorFn) {
             colorA.b === colorB.b;
     }
 
-    var Spec = {
+    function deepCopyDataFrom(object) {
+        return JSON.parse(JSON.stringify(object));
+    }
+
+    const Spec = {
         new: function (colorWithTolerances) {
-            var newSpec = JSON.parse(JSON.stringify(colorWithTolerances));
+            const newSpec = deepCopyDataFrom(colorWithTolerances);
 
             newSpec.isMatch = function (color) {
-                var c = color || getStableColor();
+                const c = color || getStableColor();
                 return c.r >= this.r.value - this.r.tolerance &&
                     c.r <= this.r.value + this.r.tolerance &&
                     c.g >= this.g.value - this.g.tolerance &&
@@ -230,7 +234,7 @@ var newColorSensorProcessor = function (getColorFn) {
         },
         not: function (spec) {
             return function (spec) {
-                var newSpec = Spec.new(spec);
+                const newSpec = Spec.new(spec);
                 newSpec.isMatch = function (color) {
                     return !spec.isMatch(color);
                 };

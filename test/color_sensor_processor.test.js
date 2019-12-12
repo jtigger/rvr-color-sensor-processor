@@ -1,8 +1,8 @@
-var newColorSensorProcessor = require("../src/color-sensor-processor");
+const newColorSensorProcessor = require("../src/color-sensor-processor");
 // fake `getColor()` that blows-up if you use it.
 //   gives clear signal when test author forgets to define+wire-in a `getColorFn()`.
-var getColor = function () {
-    throw("Undefined getColorFn.  If a testcase depends on a value from the `getColor()` Sphero builtin, it must " +
+const getColor = function () {
+    throw("Undefined getColorFn.  If a test-case depends on a value from the `getColor()` Sphero builtin, it must " +
         "define a fake of such a function and pass that in as the `getColorFn` parameter to the processor's " +
         "constructor.");
 };
@@ -162,12 +162,12 @@ describe('ColorSensorProcessor', () => {
                 {r: 6, g: 50, b: 111},
             ];
             let getColor = function () {
-                var color = (idx < data.length) ? color = data[idx] : {r: 0, g: 0, b: 0};
+                const color = (idx < data.length) ? data[idx] : {r: 0, g: 0, b: 0};
                 idx++;
                 return color;
             };
             processor = newColorSensorProcessor(getColor);
-            var scan = processor.startScan(1000);
+            const scan = processor.startScan(1000);
             while (idx < data.length) {
                 await sleep(1);
             }
@@ -185,18 +185,18 @@ describe('ColorSensorProcessor', () => {
                 {r: 100, g: 120, b: 140},
                 {r: 0, g: 0, b: 0},
             ];
-            let getColor = function () {
-                var color = (idx < data.length) ? color = data[idx] : {r: 0, g: 0, b: 0};
+            function getColor() {
+                const color = (idx < data.length) ? data[idx] : {r: 0, g: 0, b: 0};
                 idx++;
                 return color;
-            };
+            }
             processor = newColorSensorProcessor(getColor);
-            var scan = processor.startScan(1000);
+            const scan = processor.startScan(1000);
             while (idx < data.length) {
                 await sleep(1);
             }
             scan.stop();
-            var spec = scan.getColorSpec();
+            const spec = scan.getColorSpec();
             expect(spec.r).toMatchObject({value: 100, tolerance: 0});
             expect(spec.g).toMatchObject({value: 120, tolerance: 0});
             expect(spec.b).toMatchObject({value: 140, tolerance: 0});
@@ -269,7 +269,7 @@ describe('ColorSensorProcessor', () => {
                 ];
                 let idx = 0;
                 let getColor = function () {
-                    var c = data[idx];
+                    const c = data[idx];
                     if (idx < data.length - 1) {
                         idx++
                     }
@@ -308,13 +308,13 @@ describe('ColorSensorProcessor', () => {
                     {r: 0, g: 255, b: 0},
                 ];
                 let idx = 0;
-                let getColor = function () {
-                    var c = data[idx];
+                function getColor() {
+                    const c = data[idx];
                     if (idx < data.length - 1) {
                         idx++
                     }
                     return c;
-                };
+                }
                 let processor = newColorSensorProcessor(getColor);
                 processor.configureSampling({
                     stability: 2,   // have an actual rolling average
@@ -336,10 +336,10 @@ describe('ColorSensorProcessor', () => {
                 expect(timesTriggered).toBe(1);
             });
             it('ignores non-matches -- when "stable color" does NOT match the spec, the given handler is NOT invoked', () => {
-                var triggered = false;
-                let getColor = function () {
+                let triggered = false;
+                function getColor() {
                     return {r: 255, g: 255, b: 255};
-                };
+                }
                 let processor = newColorSensorProcessor(getColor);
                 let spec = processor.Spec.new({
                     r: {value: 10, tolerance: 10},
@@ -360,13 +360,13 @@ describe('ColorSensorProcessor', () => {
                     {r: 10, g: 20, b: 30}
                 ];
                 let idx = 0;
-                let getColor = function () {
-                    var c = data[idx];
+                function getColor() {
+                    const c = data[idx];
                     if (idx < data.length - 1) {
                         idx++
                     }
                     return c;
-                };
+                }
                 let processor = newColorSensorProcessor(getColor);
                 let timesTriggered = 0;
                 processor.Spec.new({
@@ -396,13 +396,13 @@ describe('ColorSensorProcessor', () => {
                     {rawColor: {r: 0, g: 255, b: 0}, expectedTriggered: 2}
                 ];
                 let idx = 0;
-                let getColor = function () {
-                    var c = data[idx].rawColor;
+                function getColor() {
+                    const c = data[idx].rawColor;
                     if (idx < data.length - 1) {
                         idx++
                     }
                     return c;
-                };
+                }
                 let processor = newColorSensorProcessor(getColor);
                 processor.configureSampling({
                     stability: 2,   // have an actual rolling average
@@ -424,10 +424,10 @@ describe('ColorSensorProcessor', () => {
                 }
             });
             it('register multiple handlers -- when called multiple times, invokes all handlers, in the order they were registered', () => {
-                var invocations = [];
-                let getColor = function () {
+                const invocations = [];
+                function getColor() {
                     return {r: 15, g: 25, b: 35};
-                };
+                }
                 let processor = newColorSensorProcessor(getColor);
                 let spec = processor.Spec.new({
                     r: {value: 10, tolerance: 10},
@@ -450,10 +450,10 @@ describe('ColorSensorProcessor', () => {
                 expect(invocations).toStrictEqual(["first", "second", "third"]);
             });
             it('deletes handlers -- when the given handler is not a function (e.g. undefined), previously given handlers are unregistered', () => {
-                var triggered = false;
-                let getColor = function () {
+                let triggered = false;
+                function getColor() {
                     return {r: 15, g: 25, b: 35};
-                };
+                }
                 let processor = newColorSensorProcessor(getColor);
                 let spec = processor.Spec.new({
                     r: {value: 10, tolerance: 10},
@@ -510,7 +510,7 @@ describe('ColorSensorProcessor', () => {
                 }));
                 expect(spec.isMatch({r: 1, g: 1, b: 1})).toBeTruthy();
             });
-        })
+        });
     });
 });
 
