@@ -7,7 +7,7 @@ var newColorSensorProcessor = function (getColorFn) {
 
     var config = {
         stability: 1,       // how many samples in a row must be equivalent to consider a new color read as "stable."
-                sampleFrequency: 0  // how frequently (in Hz) to sample from RVR's color sensor. 0 = on-demand.
+        sampleFrequency: 0  // how frequently (in Hz) to sample from RVR's color sensor. 0 = on-demand.
     };
 
     function configureSampling(newConfig) {
@@ -26,7 +26,6 @@ var newColorSensorProcessor = function (getColorFn) {
     var rawColors = [];     // array of {r:, g:, b:}. a rolling log of colors sampled from the RVR's color sensor.
     var avgColors = [];     // array of {r:, g:, b:}. a rolling average over `rawColors`
     var latestStableColor = {r: 0, g: 0, b: 0};
-    var hasColorBeenStable = false;
 
     function collectSample() {
         rawColors.unshift(getColorFn());
@@ -40,13 +39,8 @@ var newColorSensorProcessor = function (getColorFn) {
                 var nextStableColor = round(currAvgColor);
                 if (!isEqual(nextStableColor, latestStableColor)) {
                     latestStableColor = nextStableColor;
-                    if(!hasColorBeenStable) {
-                        invokeHandlersMatching(latestStableColor);
-                    }
+                    invokeHandlersMatching(latestStableColor);
                 }
-                hasColorBeenStable = true;
-            } else {
-                hasColorBeenStable = false;
             }
             rawColors = rawColors.slice(0, config.stability - 1);
             avgColors = avgColors.slice(0, config.stability - 1);
@@ -58,22 +52,40 @@ var newColorSensorProcessor = function (getColorFn) {
         return stdev.r < 3.0 && stdev.g < 3.0 && stdev.b < 3.0;
     }
 
-    var specsToHandlers = new Map();  // from colorSpec to [handlerFns...]
+    var activeSpecs = new Map();  // from Spec to {handlers:[handlerFns...], hasBeenMatching: false}
+    function registerHandler(spec, handler) {
+        var state = activeSpecs.get(spec) || {
+            handlers: [],
+            hasBeenMatching: false
+        };
+        state.handlers.push({fn: handler, isRunning: false});
+        activeSpecs.set(spec, state);
+    }
     function invokeHandlersMatching(color) {
-        for (var [spec, handlers] of specsToHandlers) {
+        for (var [spec, state] of activeSpecs) {
             if (spec.isMatch(color)) {
-                for (var idx = 0; idx < handlers.length; idx++) {
-                    const handler = handlers[idx];
-                    if (!handler.isRunning) {
-                        handler.isRunning = true;
-                        handler.fn(function () {
-                            handler.isRunning = false;
-                        }, color, spec);
+                if (!state.hasBeenMatching) {
+                    for (var idx = 0; idx < state.handlers.length; idx++) {
+                        const handler = state.handlers[idx];
+                        if (!handler.isRunning) {
+                            handler.isRunning = true;
+                            handler.fn(function () {
+                                handler.isRunning = false;
+                            }, color, spec);
+                        }
                     }
+                    state.hasBeenMatching = true;
                 }
+            } else {
+                state.hasBeenMatching = false;
             }
         }
     }
+    function unregisterAllHandlers(spec) {
+        activeSpecs.delete(spec);
+    }
+
+
 
     function getStableColor() {
         if (config.sampleFrequency === 0) {
@@ -208,11 +220,9 @@ var newColorSensorProcessor = function (getColorFn) {
 
             newSpec.whenMatches = function (handler) {
                 if (typeof handler === "function") {
-                    var handlers = specsToHandlers.get(this) || [];
-                    specsToHandlers.set(this, handlers);
-                    handlers.push({fn: handler, isRunning: false});
+                    registerHandler(this, handler);
                 } else {
-                    specsToHandlers.delete(this);
+                    unregisterAllHandlers(this);
                 }
             };
 

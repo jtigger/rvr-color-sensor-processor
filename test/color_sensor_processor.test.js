@@ -16,7 +16,7 @@ describe('ColorSensorProcessor', () => {
     let processor;
 
     describe('getColor()', () => {
-        test('reports latest stabilized color', async () => {
+        it('reports latest stabilized color', async () => {
             // see https://docs.google.com/spreadsheets/d/1PyqFdtIAGopsrHa5gaVbM-9EZxtakx8EsnYDibyx1Ok
             let data = [
                 /* grey */
@@ -154,7 +154,7 @@ describe('ColorSensorProcessor', () => {
         })
     });
     describe('startScan()', () => {
-        test('initiates a "scan" which collects color values and yields a "color spec"', async () => {
+        it('initiates a "scan" which collects color values and yields a "color spec"', async () => {
             let idx = 0;
             let data = [
                 {r: 1, g: 40, b: 101},
@@ -178,7 +178,7 @@ describe('ColorSensorProcessor', () => {
                 b: {value: 106, tolerance: 5}
             });
         });
-        test('during a scan, ignores the "off" color', async () => {
+        it('during a scan, ignores the "off" color', async () => {
             let idx = 0;
             let data = [
                 {r: 0, g: 0, b: 0},
@@ -204,7 +204,7 @@ describe('ColorSensorProcessor', () => {
     });
     describe('Specs', () => {
         describe('isMatch()', () => {
-            test('when given color is within tolerances, returns true', () => {
+            it('when given color is within tolerances, returns true', () => {
                 processor = newColorSensorProcessor(getColor);
                 let spec = processor.Spec.new({
                     r: {value: 255, tolerance: 10},
@@ -213,7 +213,7 @@ describe('ColorSensorProcessor', () => {
                 });
                 expect(spec.isMatch({r: 255, g: 57, b: 97})).toBeTruthy();
             });
-            test('when the red channel of given color is outside tolerances, returns false', () => {
+            it('when the red channel of given color is outside tolerances, returns false', () => {
                 processor = newColorSensorProcessor(getColor);
                 let spec = processor.Spec.new({
                     r: {value: 255, tolerance: 10},
@@ -222,7 +222,7 @@ describe('ColorSensorProcessor', () => {
                 });
                 expect(spec.isMatch({r: 235, g: 57, b: 97})).toBeFalsy();
             });
-            test('when the green channel of given color is outside tolerances, returns false', () => {
+            it('when the green channel of given color is outside tolerances, returns false', () => {
                 processor = newColorSensorProcessor(getColor);
                 let spec = processor.Spec.new({
                     r: {value: 255, tolerance: 10},
@@ -231,7 +231,7 @@ describe('ColorSensorProcessor', () => {
                 });
                 expect(spec.isMatch({r: 255, g: 68, b: 97})).toBeFalsy();
             });
-            test('when the blue channel of given color is outside tolerances, returns false', () => {
+            it('when the blue channel of given color is outside tolerances, returns false', () => {
                 processor = newColorSensorProcessor(getColor);
                 let spec = processor.Spec.new({
                     r: {value: 255, tolerance: 10},
@@ -240,7 +240,7 @@ describe('ColorSensorProcessor', () => {
                 });
                 expect(spec.isMatch({r: 255, g: 57, b: 197})).toBeFalsy();
             });
-            test('when given color is at upper tolerances, returns true', () => {
+            it('when given color is at upper tolerances, returns true', () => {
                 processor = newColorSensorProcessor(getColor);
                 let spec = processor.Spec.new({
                     r: {value: 245, tolerance: 10},
@@ -249,7 +249,7 @@ describe('ColorSensorProcessor', () => {
                 });
                 expect(spec.isMatch({r: 255, g: 67, b: 107})).toBeTruthy();
             });
-            test('when given color is at lower tolerances, returns true', () => {
+            it('when given color is at lower tolerances, returns true', () => {
                 processor = newColorSensorProcessor(getColor);
                 let spec = processor.Spec.new({
                     r: {value: 255, tolerance: 10},
@@ -258,7 +258,7 @@ describe('ColorSensorProcessor', () => {
                 });
                 expect(spec.isMatch({r: 245, g: 47, b: 87})).toBeTruthy();
             });
-            test('when no color is given, compares against the current "stable color"', () => {
+            it('when no color is given, compares against the current "stable color"', () => {
                 let data = [
                     {r: 255, g: 57, b: 97},  // within tolerances
                     {r: 225, g: 57, b: 97},  // red outside tolerances
@@ -291,17 +291,17 @@ describe('ColorSensorProcessor', () => {
             });
         });
         describe('whenMatches()', () => {
-            it('when "stable color" first matches the spec, the given handler is invoked, once', () => {
+            it('triggers once on match -- when "stable color" first matches the spec, the given handler is invoked, exactly once', () => {
                 let data = [
-                    // first, stabilize on green
+                    // first, stabilizes on green
                     {r: 0, g: 255, b: 0},
                     {r: 0, g: 255, b: 0},
-                    // then, change the average while staying stable (i.e. within stdev < 3).
+                    // then, the average moves gently (i.e. stdev < 3) and stays within spec's tolerances
                     {r: 1, g: 253, b: 2},
                     {r: 2, g: 253, b: 2},
                     {r: 1, g: 253, b: 2},
                     {r: 1, g: 253, b: 2},
-                    // and back to original triggering color
+                    // finally, returns back to the exact original average.
                     {r: 0, g: 255, b: 0},
                     {r: 0, g: 255, b: 0},
                     {r: 0, g: 255, b: 0},
@@ -323,9 +323,9 @@ describe('ColorSensorProcessor', () => {
 
                 let timesTriggered = 0;
                 processor.Spec.new({
-                    r: {value: 0, tolerance: 2},
-                    g: {value: 255, tolerance: 2},
-                    b: {value: 0, tolerance: 2},
+                    r: {value: 0, tolerance: 5},
+                    g: {value: 255, tolerance: 5},
+                    b: {value: 0, tolerance: 5},
                 }).whenMatches((done) => {
                     timesTriggered++;
                     done();
@@ -335,7 +335,7 @@ describe('ColorSensorProcessor', () => {
                 }
                 expect(timesTriggered).toBe(1);
             });
-            it('when "stable color" does NOT match the spec, the given handler is NOT invoked', () => {
+            it('ignores non-matches -- when "stable color" does NOT match the spec, the given handler is NOT invoked', () => {
                 var triggered = false;
                 let getColor = function () {
                     return {r: 255, g: 255, b: 255};
@@ -353,7 +353,7 @@ describe('ColorSensorProcessor', () => {
                 processor.getColor(); // cause a sample to be taken that triggers a transition.
                 expect(triggered).toBeFalsy();
             });
-            it('given the handler was invoked but is not done, when "stable color" matches the spec again, the given handler is NOT invoked', () => {
+            it('runs one instance of handler at a time -- given the handler was invoked but is not done, when "stable color" matches the spec again, the given handler is NOT invoked', () => {
                 let data = [
                     {r: 10, g: 20, b: 30},
                     {r: 255, g: 57, b: 97},
@@ -382,63 +382,48 @@ describe('ColorSensorProcessor', () => {
                 processor.getColor(); // transition back
                 expect(timesTriggered).toBe(1);
             });
-            it('when "stable color" stops matching the spec, and then later matches, the given handler is invoked', () => {
+            it('resets handler when stops matching -- when "stable color" stops matching the spec, and then later matches, the given handler is invoked', () => {
                 let data = [
-                    {r: 10, g: 20, b: 30},
-                    {r: 10, g: 20, b: 30},
-                    {r: 255, g: 57, b: 97},
-                    {r: 255, g: 57, b: 97},
-                    {r: 255, g: 57, b: 97},
-                    {r: 255, g: 57, b: 97},
-                    {r: 10, g: 20, b: 30},
-                    {r: 10, g: 20, b: 30},
-                    {r: 10, g: 20, b: 30},
-                    {r: 10, g: 20, b: 30}
+                    // first, stabilizes on green
+                    {rawColor: {r: 0, g: 255, b: 0}, expectedTriggered: 0},
+                    {rawColor: {r: 0, g: 255, b: 0}, expectedTriggered: 0},
+                    {rawColor: {r: 0, g: 255, b: 0}, expectedTriggered: 1},
+                    // then, moves *outside* the spec's tolerances while remaining stable (stdev < 3)
+                    {rawColor: {r: 0, g: 255, b: 4}, expectedTriggered: 1},
+                    {rawColor: {r: 0, g: 255, b: 4}, expectedTriggered: 1},
+                    // and gently back to original average.
+                    {rawColor: {r: 0, g: 255, b: 0}, expectedTriggered: 1},
+                    {rawColor: {r: 0, g: 255, b: 0}, expectedTriggered: 2}
                 ];
                 let idx = 0;
                 let getColor = function () {
-                    var c = data[idx];
+                    var c = data[idx].rawColor;
                     if (idx < data.length - 1) {
                         idx++
                     }
                     return c;
                 };
                 let processor = newColorSensorProcessor(getColor);
-                processor.configureSampling({stability: 2, frequency: 0});
+                processor.configureSampling({
+                    stability: 2,   // have an actual rolling average
+                    frequency: 0    // keep sampling manual
+                });
+
                 let timesTriggered = 0;
                 processor.Spec.new({
-                    r: {value: 10, tolerance: 10},
-                    g: {value: 20, tolerance: 10},
-                    b: {value: 30, tolerance: 10},
-                }).whenMatches(async (done) => {
+                    r: {value: 0, tolerance: 0},
+                    g: {value: 255, tolerance: 0},
+                    b: {value: 0, tolerance: 2},
+                }).whenMatches((done) => {
                     timesTriggered++;
                     done();
                 });
                 while(idx < data.length - 1) {
                     processor.getColor();
+                    expect(timesTriggered).toBe(data[idx].expectedTriggered);
                 }
-                expect(timesTriggered).toBe(2);
             });
-            it('when the given handler is not a function (e.g. undefined), previously given handlers are unregistered', () => {
-                var triggered = false;
-                let getColor = function () {
-                    return {r: 15, g: 25, b: 35};
-                };
-                let processor = newColorSensorProcessor(getColor);
-                let spec = processor.Spec.new({
-                    r: {value: 10, tolerance: 10},
-                    g: {value: 20, tolerance: 10},
-                    b: {value: 30, tolerance: 10},
-                });
-                spec.whenMatches((done) => {
-                    triggered = true;
-                    done();
-                });
-                spec.whenMatches();
-                processor.getColor(); // cause a sample to be taken that triggers a transition.
-                expect(triggered).toBeFalsy();
-            });
-            it('when called multiple times, invokes all handlers, in the order they were registered', () => {
+            it('register multiple handlers -- when called multiple times, invokes all handlers, in the order they were registered', () => {
                 var invocations = [];
                 let getColor = function () {
                     return {r: 15, g: 25, b: 35};
@@ -464,6 +449,25 @@ describe('ColorSensorProcessor', () => {
                 processor.getColor(); // cause a sample to be taken that triggers a transition.
                 expect(invocations).toStrictEqual(["first", "second", "third"]);
             });
+            it('deletes handlers -- when the given handler is not a function (e.g. undefined), previously given handlers are unregistered', () => {
+                var triggered = false;
+                let getColor = function () {
+                    return {r: 15, g: 25, b: 35};
+                };
+                let processor = newColorSensorProcessor(getColor);
+                let spec = processor.Spec.new({
+                    r: {value: 10, tolerance: 10},
+                    g: {value: 20, tolerance: 10},
+                    b: {value: 30, tolerance: 10},
+                });
+                spec.whenMatches((done) => {
+                    triggered = true;
+                    done();
+                });
+                spec.whenMatches();
+                processor.getColor(); // cause a sample to be taken that triggers a transition.
+                expect(triggered).toBeFalsy();
+            });
         });
         describe('not()', () => {
             it('when given color is within tolerances, returns false', () => {
@@ -476,7 +480,7 @@ describe('ColorSensorProcessor', () => {
                 }));
                 expect(spec.isMatch({r: 255, g: 57, b: 97})).toBeFalsy();
             });
-            test('when given color is at upper tolerances, returns false', () => {
+            it('when given color is at upper tolerances, returns false', () => {
                 processor = newColorSensorProcessor(getColor);
                 const s = processor.Spec;
                 let spec = s.not(s.new({
@@ -486,7 +490,7 @@ describe('ColorSensorProcessor', () => {
                 }));
                 expect(spec.isMatch({r: 255, g: 67, b: 107})).toBeFalsy();
             });
-            test('when given color is at lower tolerances, returns false', () => {
+            it('when given color is at lower tolerances, returns false', () => {
                 processor = newColorSensorProcessor(getColor);
                 const s = processor.Spec;
                 let spec = s.not(s.new({
