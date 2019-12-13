@@ -1,4 +1,4 @@
-// version: 0.9.1
+// version: 0.10.0
 const newColorSensorProcessor = function (getColorFn) {
 // wire-in the built-in (i.e. defined in EDU) `getColor()` function.
     if (getColorFn === undefined) {
