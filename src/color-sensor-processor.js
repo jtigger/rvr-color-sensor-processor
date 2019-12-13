@@ -240,6 +240,24 @@ const newColorSensorProcessor = function (getColorFn) {
                 };
                 return newSpec;
             }(spec);
+        },
+        and: function(specA, specB) {
+            return function (specA, specB) {
+                const newSpec = Spec.new([specA, specB]);
+                newSpec.isMatch = function (color) {
+                    return specA.isMatch(color) && specB.isMatch(color);
+                };
+                return newSpec;
+            }(specA, specB);
+        },
+        or: function(specA, specB) {
+            return function (specA, specB) {
+                const newSpec = Spec.new([specA, specB]);
+                newSpec.isMatch = function (color) {
+                    return specA.isMatch(color) || specB.isMatch(color);
+                };
+                return newSpec;
+            }(specA, specB);
         }
     };
 

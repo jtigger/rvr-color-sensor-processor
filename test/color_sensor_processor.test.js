@@ -185,11 +185,13 @@ describe('ColorSensorProcessor', () => {
                 {r: 100, g: 120, b: 140},
                 {r: 0, g: 0, b: 0},
             ];
+
             function getColor() {
                 const color = (idx < data.length) ? data[idx] : {r: 0, g: 0, b: 0};
                 idx++;
                 return color;
             }
+
             processor = newColorSensorProcessor(getColor);
             const scan = processor.startScan(1000);
             while (idx < data.length) {
@@ -308,6 +310,7 @@ describe('ColorSensorProcessor', () => {
                     {r: 0, g: 255, b: 0},
                 ];
                 let idx = 0;
+
                 function getColor() {
                     const c = data[idx];
                     if (idx < data.length - 1) {
@@ -315,6 +318,7 @@ describe('ColorSensorProcessor', () => {
                     }
                     return c;
                 }
+
                 let processor = newColorSensorProcessor(getColor);
                 processor.configureSampling({
                     stability: 2,   // have an actual rolling average
@@ -330,16 +334,18 @@ describe('ColorSensorProcessor', () => {
                     timesTriggered++;
                     done();
                 });
-                while(idx < data.length - 1) {
+                while (idx < data.length - 1) {
                     processor.getColor();
                 }
                 expect(timesTriggered).toBe(1);
             });
             it('ignores non-matches -- when "stable color" does NOT match the spec, the given handler is NOT invoked', () => {
                 let triggered = false;
+
                 function getColor() {
                     return {r: 255, g: 255, b: 255};
                 }
+
                 let processor = newColorSensorProcessor(getColor);
                 let spec = processor.Spec.new({
                     r: {value: 10, tolerance: 10},
@@ -360,6 +366,7 @@ describe('ColorSensorProcessor', () => {
                     {r: 10, g: 20, b: 30}
                 ];
                 let idx = 0;
+
                 function getColor() {
                     const c = data[idx];
                     if (idx < data.length - 1) {
@@ -367,13 +374,14 @@ describe('ColorSensorProcessor', () => {
                     }
                     return c;
                 }
+
                 let processor = newColorSensorProcessor(getColor);
                 let timesTriggered = 0;
                 processor.Spec.new({
                     r: {value: 10, tolerance: 0},
                     g: {value: 20, tolerance: 0},
                     b: {value: 30, tolerance: 0},
-                }).whenMatches( () => {
+                }).whenMatches(() => {
                     timesTriggered++;
                     // never calls done() ==> never "finishes"
                 });
@@ -396,6 +404,7 @@ describe('ColorSensorProcessor', () => {
                     {rawColor: {r: 0, g: 255, b: 0}, expectedTriggered: 2}
                 ];
                 let idx = 0;
+
                 function getColor() {
                     const c = data[idx].rawColor;
                     if (idx < data.length - 1) {
@@ -403,6 +412,7 @@ describe('ColorSensorProcessor', () => {
                     }
                     return c;
                 }
+
                 let processor = newColorSensorProcessor(getColor);
                 processor.configureSampling({
                     stability: 2,   // have an actual rolling average
@@ -418,16 +428,18 @@ describe('ColorSensorProcessor', () => {
                     timesTriggered++;
                     done();
                 });
-                while(idx < data.length - 1) {
+                while (idx < data.length - 1) {
                     processor.getColor();
                     expect(timesTriggered).toBe(data[idx].expectedTriggered);
                 }
             });
             it('register multiple handlers -- when called multiple times, invokes all handlers, in the order they were registered', () => {
                 const invocations = [];
+
                 function getColor() {
                     return {r: 15, g: 25, b: 35};
                 }
+
                 let processor = newColorSensorProcessor(getColor);
                 let spec = processor.Spec.new({
                     r: {value: 10, tolerance: 10},
@@ -451,9 +463,11 @@ describe('ColorSensorProcessor', () => {
             });
             it('deletes handlers -- when the given handler is not a function (e.g. undefined), previously given handlers are unregistered', () => {
                 let triggered = false;
+
                 function getColor() {
                     return {r: 15, g: 25, b: 35};
                 }
+
                 let processor = newColorSensorProcessor(getColor);
                 let spec = processor.Spec.new({
                     r: {value: 10, tolerance: 10},
@@ -509,6 +523,110 @@ describe('ColorSensorProcessor', () => {
                     b: {value: 97, tolerance: 10}
                 }));
                 expect(spec.isMatch({r: 1, g: 1, b: 1})).toBeTruthy();
+            });
+        });
+        describe('and()', () => {
+            it('when given color matches neither spec, returns false', () => {
+                const processor = newColorSensorProcessor(getColor);
+                const s = processor.Spec;
+                let spec = s.and(
+                    s.new({
+                        r: {value: 100, tolerance: 50},
+                        g: {value: 100, tolerance: 50},
+                        b: {value: 100, tolerance: 50}
+                    }),
+                    s.new({
+                        r: {value: 200, tolerance: 50},
+                        g: {value: 200, tolerance: 50},
+                        b: {value: 200, tolerance: 50}
+                    }));
+                expect(spec.isMatch({r: 1, g: 1, b: 1})).toBeFalsy();
+                expect(spec.isMatch({r: 255, g: 255, b: 255})).toBeFalsy();
+            });
+            it('when given color matches one spec, but not the other, returns false', () => {
+                const processor = newColorSensorProcessor(getColor);
+                const s = processor.Spec;
+                let spec = s.and(
+                    s.new({
+                        r: {value: 100, tolerance: 50},
+                        g: {value: 100, tolerance: 50},
+                        b: {value: 100, tolerance: 50}
+                    }),
+                    s.new({
+                        r: {value: 200, tolerance: 50},
+                        g: {value: 200, tolerance: 50},
+                        b: {value: 200, tolerance: 50}
+                    }));
+                expect(spec.isMatch({r: 100, g: 100, b: 100})).toBeFalsy();
+                expect(spec.isMatch({r: 200, g: 200, b: 200})).toBeFalsy();
+            });
+            it('when given color matches both specs, returns true', () => {
+                const processor = newColorSensorProcessor(getColor);
+                const s = processor.Spec;
+                let spec = s.and(
+                    s.new({
+                        r: {value: 100, tolerance: 50},
+                        g: {value: 100, tolerance: 50},
+                        b: {value: 100, tolerance: 50}
+                    }),
+                    s.new({
+                        r: {value: 200, tolerance: 50},
+                        g: {value: 200, tolerance: 50},
+                        b: {value: 200, tolerance: 50}
+                    }));
+                expect(spec.isMatch({r: 150, g: 150, b: 150})).toBeTruthy();
+            });
+        });
+        describe('or()', () => {
+            it('when given color matches neither spec, returns false', () => {
+                const processor = newColorSensorProcessor(getColor);
+                const s = processor.Spec;
+                let spec = s.or(
+                    s.new({
+                        r: {value: 100, tolerance: 50},
+                        g: {value: 100, tolerance: 50},
+                        b: {value: 100, tolerance: 50}
+                    }),
+                    s.new({
+                        r: {value: 200, tolerance: 50},
+                        g: {value: 200, tolerance: 50},
+                        b: {value: 200, tolerance: 50}
+                    }));
+                expect(spec.isMatch({r: 1, g: 1, b: 1})).toBeFalsy();
+                expect(spec.isMatch({r: 255, g: 255, b: 255})).toBeFalsy();
+            });
+            it('when given color matches one spec, but not the other, returns true', () => {
+                const processor = newColorSensorProcessor(getColor);
+                const s = processor.Spec;
+                let spec = s.or(
+                    s.new({
+                        r: {value: 100, tolerance: 50},
+                        g: {value: 100, tolerance: 50},
+                        b: {value: 100, tolerance: 50}
+                    }),
+                    s.new({
+                        r: {value: 200, tolerance: 50},
+                        g: {value: 200, tolerance: 50},
+                        b: {value: 200, tolerance: 50}
+                    }));
+                expect(spec.isMatch({r: 100, g: 100, b: 100})).toBeTruthy();
+                expect(spec.isMatch({r: 200, g: 200, b: 200})).toBeTruthy();
+            });
+            it('when given color matches both specs, returns true', () => {
+                const processor = newColorSensorProcessor(getColor);
+                const s = processor.Spec;
+                let spec = s.or(
+                    s.new({
+                        r: {value: 100, tolerance: 50},
+                        g: {value: 100, tolerance: 50},
+                        b: {value: 100, tolerance: 50}
+                    }),
+                    s.new({
+                        r: {value: 200, tolerance: 50},
+                        g: {value: 200, tolerance: 50},
+                        b: {value: 200, tolerance: 50}
+                    }));
+                expect(spec.isMatch({r: 150, g: 150, b: 150})).toBeTruthy();
             });
         });
     });
