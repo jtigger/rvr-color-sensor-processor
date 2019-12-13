@@ -629,6 +629,29 @@ describe('ColorSensorProcessor', () => {
                 expect(spec.isMatch({r: 150, g: 150, b: 150})).toBeTruthy();
             });
         });
+        describe('composed specs', () => {
+            it('two-levels deep seems to work', () => {
+                const processor = newColorSensorProcessor(getColor);
+                const s = processor.Spec;
+                let spec = s.not(
+                    s.or(
+                        s.new({
+                            r: {value: 100, tolerance: 50},
+                            g: {value: 100, tolerance: 50},
+                            b: {value: 100, tolerance: 50}
+                        }),
+                        s.new({
+                            r: {value: 200, tolerance: 50},
+                            g: {value: 200, tolerance: 50},
+                            b: {value: 200, tolerance: 50}
+                        })));
+                expect(spec.isMatch({r: 1, g: 1, b: 1})).toBeTruthy();
+                expect(spec.isMatch({r: 100, g: 100, b: 100})).toBeFalsy();
+                expect(spec.isMatch({r: 150, g: 150, b: 150})).toBeFalsy();
+                expect(spec.isMatch({r: 200, g: 200, b: 200})).toBeFalsy();
+                expect(spec.isMatch({r: 255, g: 255, b: 255})).toBeTruthy();
+            });
+        });
     });
 });
 

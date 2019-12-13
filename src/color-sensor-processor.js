@@ -61,6 +61,7 @@ const newColorSensorProcessor = function (getColorFn) {
         state.handlers.push({fn: handler, isRunning: false});
         activeSpecs.set(spec, state);
     }
+
     function invokeHandlersMatching(color) {
         for (const [spec, state] of activeSpecs) {
             if (spec.isMatch(color)) {
@@ -81,10 +82,10 @@ const newColorSensorProcessor = function (getColorFn) {
             }
         }
     }
+
     function unregisterAllHandlers(spec) {
         activeSpecs.delete(spec);
     }
-
 
 
     function getStableColor() {
@@ -233,31 +234,25 @@ const newColorSensorProcessor = function (getColorFn) {
             return newSpec;
         },
         not: function (spec) {
-            return function (spec) {
-                const newSpec = Spec.new(spec);
-                newSpec.isMatch = function (color) {
-                    return !spec.isMatch(color);
-                };
-                return newSpec;
-            }(spec);
+            const newSpec = Spec.new(spec);
+            newSpec.isMatch = function (color) {
+                return !spec.isMatch(color);
+            };
+            return newSpec;
         },
-        and: function(specA, specB) {
-            return function (specA, specB) {
-                const newSpec = Spec.new([specA, specB]);
-                newSpec.isMatch = function (color) {
-                    return specA.isMatch(color) && specB.isMatch(color);
-                };
-                return newSpec;
-            }(specA, specB);
+        and: function (specA, specB) {
+            const newSpec = Spec.new([specA, specB]);
+            newSpec.isMatch = function (color) {
+                return specA.isMatch(color) && specB.isMatch(color);
+            };
+            return newSpec;
         },
-        or: function(specA, specB) {
-            return function (specA, specB) {
-                const newSpec = Spec.new([specA, specB]);
-                newSpec.isMatch = function (color) {
-                    return specA.isMatch(color) || specB.isMatch(color);
-                };
-                return newSpec;
-            }(specA, specB);
+        or: function (specA, specB) {
+            const newSpec = Spec.new([specA, specB]);
+            newSpec.isMatch = function (color) {
+                return specA.isMatch(color) || specB.isMatch(color);
+            };
+            return newSpec;
         }
     };
 
