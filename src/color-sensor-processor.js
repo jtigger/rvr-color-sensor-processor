@@ -234,21 +234,21 @@ const newColorSensorProcessor = function (getColorFn) {
             return newSpec;
         },
         not: function (spec) {
-            const newSpec = Spec.new(spec);
+            const newSpec = Spec.new({op: "not", a: spec});
             newSpec.isMatch = function (color) {
                 return !spec.isMatch(color);
             };
             return newSpec;
         },
         and: function (specA, specB) {
-            const newSpec = Spec.new([specA, specB]);
+            const newSpec = Spec.new({op: "and", a: specA, b: specB});
             newSpec.isMatch = function (color) {
                 return specA.isMatch(color) && specB.isMatch(color);
             };
             return newSpec;
         },
         or: function (specA, specB) {
-            const newSpec = Spec.new([specA, specB]);
+            const newSpec = Spec.new({op: "or", a: specA, b: specB});
             newSpec.isMatch = function (color) {
                 return specA.isMatch(color) || specB.isMatch(color);
             };
